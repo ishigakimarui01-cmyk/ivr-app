@@ -5,7 +5,7 @@ const client = require('twilio')(process.env.TWILIO_SID, process.env.TWILIO_AUTH
 const app = express();
 app.use(express.urlencoded({ extended: false }));
 
-// ===== 設定（ここだけ変更）=====
+// ===== 設定 =====
 const TWILIO_NUMBER = '+81XXXXXXXXXX'; // Twilio番号
 const YOUR_PHONE = '+819044714818';   // あなたの携帯
 
@@ -46,12 +46,14 @@ app.post('/handle-main', (req, res) => {
 
   switch (digit) {
 
-    case '1': // 緊急
+    // ===== ① 緊急 =====
+    case '1':
       twiml.say('ガスの元栓を閉めてください。火気の使用はおやめください。担当者にお繋ぎします。');
       dialWithFallback(twiml);
       break;
 
-    case '2': // ガス出ない
+    // ===== ② ガス出ない =====
+    case '2':
       const gather2 = twiml.gather({
         numDigits: 1,
         action: '/handle-gas',
@@ -66,28 +68,38 @@ app.post('/handle-main', (req, res) => {
 `);
       break;
 
-    case '3': // 開閉栓
-      sendSMS(from, `【マルヰプロパン商会】
+    // ===== ③ 開閉栓 =====
+    case '3':
+      sendSMS(from,
+`【マルヰプロパン商会】
 開栓・閉栓予約はこちら
-https://ishigakimarui.com/`);
+https://ishigakimarui.com/?page_id=90`);
+
       twiml.say('SMSでご案内をお送りしました。');
       break;
 
-    case '4': // 料金
-      sendSMS(from, `【マルヰプロパン商会】
+    // ===== ④ 料金 =====
+    case '4':
+      sendSMS(from,
+`【マルヰプロパン商会】
 料金のお問い合わせはこちら
 https://ishigakimarui.com/?page_id=34`);
+
       twiml.say('SMSでお問い合わせフォームをお送りしました。');
       break;
 
-    case '5': // 支払い
-      sendSMS(from, `【マルヰプロパン商会】
+    // ===== ⑤ 支払い =====
+    case '5':
+      sendSMS(from,
+`【マルヰプロパン商会】
 お支払い方法の変更はこちら
-https://ishigakimarui.com/`);
+https://ishigakimarui.com/?page_id=337`);
+
       twiml.say('SMSでご案内をお送りしました。');
       break;
 
-    case '6': // その他
+    // ===== ⑥ その他 =====
+    case '6':
       dialWithFallback(twiml);
       break;
 
@@ -100,13 +112,14 @@ https://ishigakimarui.com/`);
   res.send(twiml.toString());
 });
 
-// ===== ガス復帰 =====
+// ===== ガス対応 =====
 app.post('/handle-gas', (req, res) => {
   const digit = req.body.Digits;
   const from = req.body.From;
   const twiml = new VoiceResponse();
 
   if (digit === '1') {
+    // MMS送信（画像付き）
     client.messages.create({
       body: '【マルヰプロパン商会】ガスメーター復帰方法です。うまくいかない場合はお電話ください。',
       from: TWILIO_NUMBER,
@@ -120,6 +133,7 @@ app.post('/handle-gas', (req, res) => {
 
   } else if (digit === '2') {
     dialWithFallback(twiml);
+
   } else {
     twiml.redirect('/voice');
   }
@@ -128,7 +142,7 @@ app.post('/handle-gas', (req, res) => {
   res.send(twiml.toString());
 });
 
-// ===== 電話転送 =====
+// ===== 電話転送（保険付き） =====
 function dialWithFallback(twiml) {
   const dial = twiml.dial({
     timeout: 15,
@@ -138,10 +152,12 @@ function dialWithFallback(twiml) {
   dial.number(YOUR_PHONE);
 }
 
-// ===== 転送失敗 =====
+// ===== 転送失敗時 =====
 app.post('/dial-fallback', (req, res) => {
   const twiml = new VoiceResponse();
+
   twiml.say('担当者に接続できませんでした。再度おかけ直しください。');
+
   res.type('text/xml');
   res.send(twiml.toString());
 });
@@ -155,7 +171,7 @@ function sendSMS(to, message) {
   }).catch(console.error);
 }
 
-// ===== サーバー起動 =====
+// ===== Render用ポート =====
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log('IVR running on port ' + PORT);
