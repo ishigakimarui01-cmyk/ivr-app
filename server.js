@@ -7,7 +7,7 @@ app.use(express.urlencoded({ extended: false }));
 
 // ===== 設定（ここだけ変更）=====
 const TWILIO_NUMBER = '+81XXXXXXXXXX'; // Twilio番号
-const YOUR_PHONE = '+8190XXXXXXXX';   // あなたの携帯
+const YOUR_PHONE = '+819044714818';   // あなたの携帯
 
 // ===== メインIVR =====
 app.post('/voice', (req, res) => {
