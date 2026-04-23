@@ -1,2 +1,0 @@
-# ivr-app
-IVR用
