@@ -9,8 +9,8 @@ const client = require('twilio')(
 const app = express();
 app.use(express.urlencoded({ extended: false }));
 
-const TWILIO_NUMBER = '+81XXXXXXXXXX';
-const YOUR_PHONE = '+8190XXXXXXXX';
+const TWILIO_NUMBER = '+19898153242';
+const YOUR_PHONE = '+819068675803';
 
 
 /* =========================
