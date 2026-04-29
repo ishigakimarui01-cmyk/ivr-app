@@ -1,140 +1,36 @@
 const express = require('express');
 const { twiml: { VoiceResponse } } = require('twilio');
-const client = require('twilio')(process.env.TWILIO_SID, process.env.TWILIO_AUTH);
 
 const app = express();
+
 app.use(express.urlencoded({ extended: false }));
 
-// ===== 設定 =====
-const TWILIO_NUMBER = '+81XXXXXXXXXX'; // Twilio番号
-const YOUR_PHONE = '+819044714818';   // あなたの携帯
-
-// ===== メインIVR =====
 app.post('/voice', (req, res) => {
   const twiml = new VoiceResponse();
 
-  const gather = twiml.gather({
+  twiml.say({ language: 'ja-JP' }, 'ガスのご用件をお選びください。1番は緊急、2番はガスが出ない。');
+
+  twiml.gather({
     numDigits: 1,
-    action: '/handle-main',
-    method: 'POST',
-    timeout: 5
+    action: '/handle',
+    method: 'POST'
   });
 
-  gather.say({ language: 'ja-JP', voice: 'Polly.Mizuki' }, `
-お電話ありがとうございます。マルヰプロパン商会です。
-
-ガスの臭いがする、または緊急の場合は1を押してください。
-
-ガスが出ない、機器の不具合は2、
-開栓・閉栓のご予約は3、
-料金については4、
-お支払い方法については5、
-その他のお問い合わせは6を押してください。
-`);
-
-  twiml.redirect('/voice');
-
   res.type('text/xml');
   res.send(twiml.toString());
 });
 
-// ===== メイン分岐 =====
-app.post('/handle-main', (req, res) => {
-  const digit = req.body.Digits;
-  const from = req.body.From;
+app.post('/handle', (req, res) => {
   const twiml = new VoiceResponse();
-
-  switch (digit) {
-
-    // ===== ① 緊急 =====
-    case '1':
-      twiml.say('ガスの元栓を閉めてください。火気の使用はおやめください。担当者にお繋ぎします。');
-      dialWithFallback(twiml);
-      break;
-
-    // ===== ② ガス出ない =====
-    case '2':
-      const gather2 = twiml.gather({
-        numDigits: 1,
-        action: '/handle-gas',
-        method: 'POST'
-      });
-
-      gather2.say({ language: 'ja-JP' }, `
-ガスが出ない場合、メーター遮断の可能性があります。
-
-復帰方法をSMSで受け取る場合は1、
-担当者に繋ぐ場合は2を押してください。
-`);
-      break;
-
-    // ===== ③ 開閉栓 =====
-    case '3':
-      sendSMS(from,
-`【マルヰプロパン商会】
-開栓・閉栓予約はこちら
-https://ishigakimarui.com/?page_id=90`);
-
-      twiml.say('SMSでご案内をお送りしました。');
-      break;
-
-    // ===== ④ 料金 =====
-    case '4':
-      sendSMS(from,
-`【マルヰプロパン商会】
-料金のお問い合わせはこちら
-https://ishigakimarui.com/?page_id=34`);
-
-      twiml.say('SMSでお問い合わせフォームをお送りしました。');
-      break;
-
-    // ===== ⑤ 支払い =====
-    case '5':
-      sendSMS(from,
-`【マルヰプロパン商会】
-お支払い方法の変更はこちら
-https://ishigakimarui.com/?page_id=337`);
-
-      twiml.say('SMSでご案内をお送りしました。');
-      break;
-
-    // ===== ⑥ その他 =====
-    case '6':
-      dialWithFallback(twiml);
-      break;
-
-    default:
-      twiml.say('入力が確認できませんでした。');
-      twiml.redirect('/voice');
-  }
-
-  res.type('text/xml');
-  res.send(twiml.toString());
-});
-
-// ===== ガス対応 =====
-app.post('/handle-gas', (req, res) => {
   const digit = req.body.Digits;
-  const from = req.body.From;
-  const twiml = new VoiceResponse();
 
   if (digit === '1') {
-    // MMS送信（画像付き）
-    client.messages.create({
-      body: '【マルヰプロパン商会】ガスメーター復帰方法です。うまくいかない場合はお電話ください。',
-      from: TWILIO_NUMBER,
-      to: from,
-      mediaUrl: [
-        'https://ishigakimarui.com/wp/wp-content/uploads/2024/01/fukkihouhou.jpg'
-      ]
-    });
-
-    twiml.say('復帰方法をSMSでお送りしました。ご確認ください。');
-
+    twiml.say({ language: 'ja-JP' }, '緊急対応におつなぎします。');
+    twiml.dial('あなたの電話番号'); // ←0980825532
   } else if (digit === '2') {
-    dialWithFallback(twiml);
-
+    twiml.say({ language: 'ja-JP' }, 'ガス復帰方法をSMSでお送りします。');
   } else {
+    twiml.say({ language: 'ja-JP' }, 'もう一度お試しください。');
     twiml.redirect('/voice');
   }
 
@@ -142,37 +38,7 @@ app.post('/handle-gas', (req, res) => {
   res.send(twiml.toString());
 });
 
-// ===== 電話転送（保険付き） =====
-function dialWithFallback(twiml) {
-  const dial = twiml.dial({
-    timeout: 15,
-    action: '/dial-fallback'
-  });
-
-  dial.number(YOUR_PHONE);
-}
-
-// ===== 転送失敗時 =====
-app.post('/dial-fallback', (req, res) => {
-  const twiml = new VoiceResponse();
-
-  twiml.say('担当者に接続できませんでした。再度おかけ直しください。');
-
-  res.type('text/xml');
-  res.send(twiml.toString());
-});
-
-// ===== SMS送信 =====
-function sendSMS(to, message) {
-  client.messages.create({
-    body: message,
-    from: TWILIO_NUMBER,
-    to: to
-  }).catch(console.error);
-}
-
-// ===== Render用ポート =====
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log('IVR running on port ' + PORT);
+  console.log('Server running');
 });
