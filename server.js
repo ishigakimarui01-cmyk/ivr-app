@@ -3,31 +3,35 @@ const { twiml: { VoiceResponse } } = require('twilio');
 const twilio = require('twilio');
 
 const app = express();
-
 app.use(express.urlencoded({ extended: false }));
 
+const client = twilio(
+  process.env.TWILIO_SID,
+  process.env.TWILIO_AUTH
+);
+
+const TWILIO_NUMBER = '+19898153242';
+const YOUR_PHONE = '+819068675803';
+
+
 /* =========================
-   IVR開始（日本語）
+   メインIVR
 ========================= */
 app.post('/voice', (req, res) => {
   const twiml = new VoiceResponse();
 
-  // 🔥 日本語ガイダンス（最初の入口）
-  twiml.say(
-    { language: 'ja-JP' },
-    'ガスのご用件をお選びください。1番は緊急対応、2番はガスが出ない場合です。'
-  );
-
-  // 🔥 入力待ち（ここでは喋らせないのが安定）
-  twiml.gather({
+  const gather = twiml.gather({
     numDigits: 1,
-    action: '/handle',
+    action: '/handle-main',
     method: 'POST',
-    timeout: 5
+    timeout: 6
   });
 
-  // 🔥 無入力時ループ
-  twiml.redirect('/voice');
+  // 🔥 修正①：短くする（重要）
+  gather.say(
+    { language: 'ja-JP' },
+    'マルヰプロパンです。1緊急、2ガス不具合、3開栓、4料金、5支払い、6その他。'
+  );
 
   res.type('text/xml');
   res.send(twiml.toString());
@@ -35,34 +39,89 @@ app.post('/voice', (req, res) => {
 
 
 /* =========================
-   分岐処理
+   メイン分岐
 ========================= */
-app.post('/handle', (req, res) => {
-  const twiml = new VoiceResponse();
+app.post('/handle-main', (req, res) => {
   const digit = req.body.Digits;
+  const from = req.body.From;
+  const twiml = new VoiceResponse();
+
+  switch (digit) {
+
+    case '1':
+      twiml.say({ language: 'ja-JP' }, '緊急対応におつなぎします。');
+      twiml.dial(YOUR_PHONE);
+      break;
+
+    case '2':
+      const gather2 = twiml.gather({
+        numDigits: 1,
+        action: '/handle-gas',
+        method: 'POST',
+        timeout: 6
+      });
+
+      gather2.say(
+        { language: 'ja-JP' },
+        '1復帰方法SMS、2担当者につなぐ'
+      );
+      break;
+
+    case '3':
+      sendSMS(from, '開栓・閉栓はこちら https://ishigakimarui.com/');
+      twiml.say({ language: 'ja-JP' }, 'SMSを送信しました。');
+      break;
+
+    case '4':
+      sendSMS(from, '料金はこちら https://ishigakimarui.com/?page_id=34');
+      twiml.say({ language: 'ja-JP' }, 'SMSを送信しました。');
+      break;
+
+    case '5':
+      sendSMS(from, '支払い方法はこちら https://ishigakimarui.com/');
+      twiml.say({ language: 'ja-JP' }, 'SMSを送信しました。');
+      break;
+
+    case '6':
+      twiml.dial(YOUR_PHONE);
+      break;
+
+    default:
+      twiml.say({ language: 'ja-JP' }, '入力が確認できませんでした。');
+      twiml.redirect('/voice');
+  }
+
+  res.type('text/xml');
+  res.send(twiml.toString());
+});
+
+
+/* =========================
+   ガス復旧
+========================= */
+app.post('/handle-gas', async (req, res) => {
+  const digit = req.body.Digits;
+  const from = req.body.From;
+  const twiml = new VoiceResponse();
 
   if (digit === '1') {
 
-    twiml.say(
-      { language: 'ja-JP' },
-      '緊急対応におつなぎします。'
-    );
+    await client.messages.create({
+      body: 'ガスメーター復帰方法です。',
+      from: TWILIO_NUMBER,
+      to: from,
+      mediaUrl: [
+        'https://ishigakimarui.com/wp/wp-content/uploads/2024/01/fukkihouhou.jpg'
+      ]
+    });
 
-    twiml.dial('+819068675803');
+    twiml.say({ language: 'ja-JP' }, 'SMSを送信しました。');
 
   } else if (digit === '2') {
 
-    twiml.say(
-      { language: 'ja-JP' },
-      'ガス復旧方法をご案内します。'
-    );
+    twiml.dial(YOUR_PHONE);
 
   } else {
-
-    twiml.say(
-      { language: 'ja-JP' },
-      'もう一度お試しください。'
-    );
 
     twiml.redirect('/voice');
   }
@@ -73,34 +132,15 @@ app.post('/handle', (req, res) => {
 
 
 /* =========================
-   health check
+   SMS関数
 ========================= */
-app.get('/voice', (req, res) => {
-  res.send('OK');
-});
-
-
-/* =========================
-   発信トリガー
-========================= */
-app.get('/callme', async (req, res) => {
-  try {
-    const client = twilio(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN
-    );
-
-    await client.calls.create({
-      to: '+819068675803',
-      from: '+19898153242',
-      url: 'https://ivr-app-86ys.onrender.com/voice'
-    });
-
-    res.send('発信OK');
-  } catch (err) {
-    res.status(500).send(err.message);
-  }
-});
+function sendSMS(to, message) {
+  return client.messages.create({
+    body: message,
+    from: TWILIO_NUMBER,
+    to
+  }).catch(console.error);
+}
 
 
 /* =========================
@@ -108,5 +148,5 @@ app.get('/callme', async (req, res) => {
 ========================= */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log('Server running on ' + PORT);
+  console.log('IVR running on ' + PORT);
 });
