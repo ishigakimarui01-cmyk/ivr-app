@@ -58,7 +58,7 @@ app.get('/callme', async (req, res) => {
 
   try {
     const call = await client.calls.create({
-      to: '+81あなたの番号',
+      to: '+8109068675803',
       from: '+19898153242', // あなたのTwilio番号
       url: 'https://ivr-app-86ys.onrender.com/voice'
     });
