@@ -50,3 +50,21 @@ app.get('/voice', (req, res) => {
 app.get('/voice', (req, res) => {
   res.send('OK');
 });
+app.get('/callme', async (req, res) => {
+  const client = require('twilio')(
+    process.env.TWILIO_ACCOUNT_SID,
+    process.env.TWILIO_AUTH_TOKEN
+  );
+
+  try {
+    const call = await client.calls.create({
+      to: '+81あなたの番号',
+      from: '+19898153242', // あなたのTwilio番号
+      url: 'https://ivr-app-86ys.onrender.com/voice'
+    });
+
+    res.send('発信OK');
+  } catch (err) {
+    res.send(err.message);
+  }
+});
