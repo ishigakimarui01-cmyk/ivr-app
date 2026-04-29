@@ -1,7 +1,7 @@
 const express = require('express');
 const { twiml: { VoiceResponse } } = require('twilio');
-
 const twilio = require('twilio');
+
 const app = express();
 
 app.use(express.urlencoded({ extended: false }));
@@ -12,28 +12,21 @@ app.use(express.urlencoded({ extended: false }));
 app.post('/voice', (req, res) => {
   const twiml = new VoiceResponse();
 
+  // 🔥 日本語ガイダンス（最初の入口）
   twiml.say(
-    {
-      language: 'ja-JP'
-      // 👆 voiceはあえて指定しない（重要）
-    },
-    'ガスのご用件をお選びください。1番は緊急、2番はガスが出ない場合です。'
+    { language: 'ja-JP' },
+    'ガスのご用件をお選びください。1番は緊急対応、2番はガスが出ない場合です。'
   );
 
-  const gather = twiml.gather({
+  // 🔥 入力待ち（ここでは喋らせないのが安定）
+  twiml.gather({
     numDigits: 1,
     action: '/handle',
     method: 'POST',
     timeout: 5
   });
 
-  gather.say(
-    {
-      language: 'ja-JP'
-    },
-    '1番は緊急対応、2番はガスが出ない場合です。'
-  );
-
+  // 🔥 無入力時ループ
   twiml.redirect('/voice');
 
   res.type('text/xml');
@@ -49,6 +42,7 @@ app.post('/handle', (req, res) => {
   const digit = req.body.Digits;
 
   if (digit === '1') {
+
     twiml.say(
       { language: 'ja-JP' },
       '緊急対応におつなぎします。'
@@ -57,12 +51,14 @@ app.post('/handle', (req, res) => {
     twiml.dial('+819068675803');
 
   } else if (digit === '2') {
+
     twiml.say(
       { language: 'ja-JP' },
       'ガス復旧方法をご案内します。'
     );
 
   } else {
+
     twiml.say(
       { language: 'ja-JP' },
       'もう一度お試しください。'
