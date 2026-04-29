@@ -1,32 +1,36 @@
 const express = require('express');
 const { twiml: { VoiceResponse } } = require('twilio');
-const twilio = require('twilio');
 
 const app = express();
-
 app.use(express.urlencoded({ extended: false }));
 
+const YOUR_PHONE = '+8190XXXXXXXX';
+
 /* =========================
-   IVR開始（日本語）
+   IVR入口
 ========================= */
 app.post('/voice', (req, res) => {
   const twiml = new VoiceResponse();
 
-  // 🔥 日本語ガイダンス（最初の入口）
+  // 🔥 日本語ガイダンス（安定版）
   twiml.say(
     { language: 'ja-JP' },
-    'ガスのご用件をお選びください。1番は緊急対応、2番はガスが出ない場合です。'
+    'お電話ありがとうございます。ご用件をお選びください。'
   );
 
-  // 🔥 入力待ち（ここでは喋らせないのが安定）
-  twiml.gather({
+  const gather = twiml.gather({
     numDigits: 1,
     action: '/handle',
     method: 'POST',
     timeout: 5
   });
 
-  // 🔥 無入力時ループ
+  // 🔥 gatherは喋らせない（重要：音声ブレ防止）
+  gather.say(
+    { language: 'ja-JP' },
+    '1は緊急対応、2はガスが出ない、3はその他のお問い合わせです。'
+  );
+
   twiml.redirect('/voice');
 
   res.type('text/xml');
@@ -48,20 +52,31 @@ app.post('/handle', (req, res) => {
       '緊急対応におつなぎします。'
     );
 
-    twiml.dial('+819068675803');
+    twiml.dial(YOUR_PHONE);
 
   } else if (digit === '2') {
 
     twiml.say(
       { language: 'ja-JP' },
-      'ガス復旧方法をご案内します。'
+      'ガスが出ない場合のご案内です。'
     );
+
+    twiml.redirect('/voice');
+
+  } else if (digit === '3') {
+
+    twiml.say(
+      { language: 'ja-JP' },
+      '担当者におつなぎします。'
+    );
+
+    twiml.dial(YOUR_PHONE);
 
   } else {
 
     twiml.say(
       { language: 'ja-JP' },
-      'もう一度お試しください。'
+      '入力が確認できませんでした。もう一度お試しください。'
     );
 
     twiml.redirect('/voice');
@@ -73,40 +88,9 @@ app.post('/handle', (req, res) => {
 
 
 /* =========================
-   health check
-========================= */
-app.get('/voice', (req, res) => {
-  res.send('OK');
-});
-
-
-/* =========================
-   発信トリガー
-========================= */
-app.get('/callme', async (req, res) => {
-  try {
-    const client = twilio(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN
-    );
-
-    await client.calls.create({
-      to: '+819068675803',
-      from: '+19898153242',
-      url: 'https://ivr-app-86ys.onrender.com/voice'
-    });
-
-    res.send('発信OK');
-  } catch (err) {
-    res.status(500).send(err.message);
-  }
-});
-
-
-/* =========================
    起動
 ========================= */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log('Server running on ' + PORT);
+  console.log('IVR running on ' + PORT);
 });
