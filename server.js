@@ -45,3 +45,8 @@ app.listen(PORT, () => {
 app.get('/voice', (req, res) => {
   res.send('OK');
 });
+👉 server.jsにこれ追加👇
+
+app.get('/voice', (req, res) => {
+  res.send('OK');
+});
