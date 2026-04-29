@@ -31,7 +31,7 @@ app.post('/handle', (req, res) => {
 
   if (digit === '1') {
     twiml.say({ language: 'ja-JP' }, '緊急対応におつなぎします。');
-    twiml.dial('+81980825532'); // ←ここは必ず+81形式
+    twiml.dial('+819068675803'); // ←ここは必ず+81形式
   } else if (digit === '2') {
     twiml.say({ language: 'ja-JP' }, 'ガス復帰方法をSMSでお送りします。');
   } else {
