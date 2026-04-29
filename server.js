@@ -10,7 +10,7 @@ app.use(express.urlencoded({ extended: false }));
 app.post('/voice', (req, res) => {
   const twiml = new VoiceResponse();
 
-  twiml.say({ language: 'ja-JP' },
+  twiml.say({ language: 'ja-JP' voice: 'alice'},
     'ガスのご用件をお選びください。1番は緊急、2番はガスが出ない。'
   );
 
@@ -30,12 +30,12 @@ app.post('/handle', (req, res) => {
   const digit = req.body.Digits;
 
   if (digit === '1') {
-    twiml.say({ language: 'ja-JP' }, '緊急対応におつなぎします。');
+    twiml.say({ language: 'ja-JP'voice: 'alice' }, '緊急対応におつなぎします。');
     twiml.dial('+819068675803'); // ←ここは必ず+81形式
   } else if (digit === '2') {
-    twiml.say({ language: 'ja-JP' }, 'ガス復帰方法をSMSでお送りします。');
+    twiml.say({ language: 'ja-JP'voice: 'alice' }, 'ガス復帰方法をSMSでお送りします。');
   } else {
-    twiml.say({ language: 'ja-JP' }, 'もう一度お試しください。');
+    twiml.say({ language: 'ja-JP' voice: 'alice'}, 'もう一度お試しください。');
     twiml.redirect('/voice');
   }
 
