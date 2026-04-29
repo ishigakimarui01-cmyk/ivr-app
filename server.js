@@ -7,8 +7,8 @@ app.use(express.urlencoded({ extended: false }));
 app.post('/voice', (req, res) => {
   const twiml = new VoiceResponse();
 
-  // 👇これだけにする（最重要テスト）
-  twiml.say('こんにちは。テストです。Hello test.');
+  // 🔥 最小テスト（重要）
+  twiml.say('こんにちは。テストです。日本語が聞こえていますか？');
 
   res.type('text/xml');
   res.send(twiml.toString());
