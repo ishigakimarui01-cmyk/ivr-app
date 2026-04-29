@@ -49,9 +49,11 @@ app.get('/voice', (req, res) => {
 });
 
 // 発信テスト
-app.get('/callme', (req, res) => {
-  res.send('callme OK');
-});
+app.get('/callme', async (req, res) => {
+  const client = require('twilio')(
+    process.env.TWILIO_ACCOUNT_SID,
+    process.env.TWILIO_AUTH_TOKEN
+  );
 
   try {
     const call = await client.calls.create({
@@ -62,7 +64,7 @@ app.get('/callme', (req, res) => {
 
     res.send('発信OK');
   } catch (err) {
-    res.send(err.message);
+    res.status(500).send(err.message);
   }
 });
 
