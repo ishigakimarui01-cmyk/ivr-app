@@ -1,21 +1,23 @@
 const express = require('express');
 const { twiml: { VoiceResponse } } = require('twilio');
-const twilio = require('twilio');
 
+const twilio = require('twilio');
 const app = express();
 
 app.use(express.urlencoded({ extended: false }));
 
 /* =========================
-   IVR開始
+   IVR開始（日本語）
 ========================= */
 app.post('/voice', (req, res) => {
   const twiml = new VoiceResponse();
 
-  twiml.say({
-    voice: 'Polly.Mizuki'
-  },
-    'ガスのご用件をお選びください。1番は緊急対応、2番はガスが出ない場合です。'
+  twiml.say(
+    {
+      language: 'ja-JP'
+      // 👆 voiceはあえて指定しない（重要）
+    },
+    'ガスのご用件をお選びください。1番は緊急、2番はガスが出ない場合です。'
   );
 
   const gather = twiml.gather({
@@ -25,9 +27,12 @@ app.post('/voice', (req, res) => {
     timeout: 5
   });
 
-  gather.say({
-    voice: 'Polly.Mizuki'
-  }, '1番は緊急、2番はガスが出ない場合です。');
+  gather.say(
+    {
+      language: 'ja-JP'
+    },
+    '1番は緊急対応、2番はガスが出ない場合です。'
+  );
 
   twiml.redirect('/voice');
 
@@ -44,21 +49,24 @@ app.post('/handle', (req, res) => {
   const digit = req.body.Digits;
 
   if (digit === '1') {
-    twiml.say({
-      voice: 'Polly.Mizuki'
-    }, '緊急対応におつなぎします。');
+    twiml.say(
+      { language: 'ja-JP' },
+      '緊急対応におつなぎします。'
+    );
 
     twiml.dial('+819068675803');
 
   } else if (digit === '2') {
-    twiml.say({
-      voice: 'Polly.Mizuki'
-    }, 'ガス復旧方法をSMSでお送りします。');
+    twiml.say(
+      { language: 'ja-JP' },
+      'ガス復旧方法をご案内します。'
+    );
 
   } else {
-    twiml.say({
-      voice: 'Polly.Mizuki'
-    }, 'もう一度お試しください。');
+    twiml.say(
+      { language: 'ja-JP' },
+      'もう一度お試しください。'
+    );
 
     twiml.redirect('/voice');
   }
