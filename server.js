@@ -53,7 +53,7 @@ app.get('/voice', (req, res) => {
 app.get('/callme', async (req, res) => {
   const client = require('twilio')(
     process.env.TWILIO_ACCOUNT_SID,
-    process.env.TWILIO_AUTH_TOKEN
+    process.env.TWILIO_AUTH_TOKEN,5
   );
 
   try {
